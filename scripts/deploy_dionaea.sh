@@ -25,14 +25,33 @@ add-apt-repository -y ppa:honeynet/nightly
 apt-get update
 
 # Installing Dionaea.
-apt-get install -y dionaea supervisor patch
+if [[ `lsb_release -cs` == "trusty" ]]
+	then
+		apt-get install -y dionaea-phibo supervisor patch
+	else
+		apt-get install -y dionaea supervisor patch
+fi
 
 cp /etc/dionaea/dionaea.conf.dist /etc/dionaea/dionaea.conf
 cat > /tmp/dionaea.hpfeeds.patch <<EOF
-index 43e17b4..7b16529 100644
 --- /etc/dionaea/dionaea.conf
 +++ /etc/dionaea/dionaea.conf.new
-@@ -344,6 +344,16 @@ modules = {
+@@ -252,10 +252,10 @@
+ 		tftp = {
+ 			root = "var/dionaea/wwwroot"
+ 		}
+-		http = {
+-			root = "var/dionaea/wwwroot"
+-			max-request-size = "32768" // maximum size in kbytes of the request (32MB)
+-		}
++		//http = {
++		//	root = "var/dionaea/wwwroot"
++		//	max-request-size = "32768" // maximum size in kbytes of the request (32MB)
++		//}
+ 		sip = {
+ 			udp = {
+ 				port = "5060"
+@@ -350,6 +350,16 @@
  			user = "" 		// username (optional)
  			pass = ""		// password (optional)
  		}
@@ -49,15 +68,24 @@ index 43e17b4..7b16529 100644
  		logsql = {
  			mode = "sqlite" // so far there is only sqlite
  			sqlite = {
-@@ -457,6 +467,7 @@ modules = {
- //			"virustotal",
+@@ -466,6 +476,7 @@
  //			"mwserv",
  //			"submit_http",
-+			"hpfeeds",
  //			"logxmpp",
++			"hpfeeds",
  //			"nfq",
  //			"p0f",
-index 5b40dd7..8bddc63 100644
+ //			"surfids",
+@@ -474,7 +485,7 @@
+ 		}
+ 
+ 		services = {
+-			serve = ["http", "https", "tftp", "ftp", "mirror", "smb", "epmap", "sip","mssql", "mysql"]
++			serve = ["tftp", "ftp", "mirror", "smb", "epmap", "sip","mssql", "mysql"]
+ 		}
+ 
+ 	}
+
 --- /usr/lib/dionaea/python/dionaea/ihandlers.py
 +++ /usr/lib/dionaea/python/dionaea/ihandlers.py.new
 @@ -129,6 +129,13 @@ def new():
@@ -457,6 +485,7 @@ sed -i 's/var\/dionaea\///g' /etc/dionaea/dionaea.conf
 sed -i 's/log\//\/var\/dionaea\/log\//g' /etc/dionaea/dionaea.conf
 sed -i 's/levels = "all"/levels = "warning,error"/1' /etc/dionaea/dionaea.conf
 sed -i 's/mode = "getifaddrs"/mode = "manual"/1' /etc/dionaea/dionaea.conf
+sed --in-place='.bak' 's/addrs = { eth0 = \["::"\] }/addrs = { eth0 = ["::", "0.0.0.0"] }/' /etc/dionaea/dionaea.conf
 
 mkdir -p /var/dionaea/bistreams 
 chown nobody:nogroup /var/dionaea/bistreams

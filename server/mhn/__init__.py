@@ -1,7 +1,6 @@
-import itertools
 from urlparse import urljoin
 
-from flask import Flask, request, jsonify, abort, url_for
+from flask import Flask, request, jsonify, abort, url_for, session
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.security import Security, SQLAlchemyUserDatastore
 from flask.ext.security.utils import encrypt_password as encrypt
@@ -9,6 +8,10 @@ from flask.ext.mail import Mail
 from werkzeug.contrib.atom import AtomFeed
 import xmltodict
 import uuid
+import random
+import string
+from flask_wtf.csrf import CsrfProtect
+csrf = CsrfProtect()
 
 db = SQLAlchemy()
 # After defining `db`, import auth models due to
@@ -19,6 +22,7 @@ user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 
 mhn = Flask(__name__)
 mhn.config.from_object('config')
+csrf.init_app(mhn)
 
 # Email app setup.
 mail = Mail()
@@ -120,7 +124,7 @@ def create_clean_db():
 
         apikey = ApiKey(user_id=superuser.id, api_key=str(uuid.uuid4()).replace("-", ""))
         db.session.add(apikey)
-        db.session.flush()        
+        db.session.flush()
 
         from os import path
 
@@ -131,10 +135,19 @@ def create_clean_db():
         #|-- deploy_conpot.sh
         #|-- deploy_dionaea.sh
         #|-- deploy_snort.sh
+        #|-- deploy_kippo.sh
         deployscripts = {
-            'Conpot': path.abspath('../scripts/deploy_conpot.sh'),
-            'Dionaea': path.abspath('../scripts/deploy_dionaea.sh'),
-            'Snort': path.abspath('../scripts/deploy_snort.sh'),
+            'Ubuntu - Conpot': path.abspath('../scripts/deploy_conpot.sh'),
+            'Ubuntu - Dionaea': path.abspath('../scripts/deploy_dionaea.sh'),
+            'Ubuntu - Snort': path.abspath('../scripts/deploy_snort.sh'),
+            'Ubuntu - Kippo': path.abspath('../scripts/deploy_kippo.sh'),
+            'Ubuntu - Amun': path.abspath('../scripts/deploy_amun.sh'),
+            'Ubuntu - Glastopf': path.abspath('../scripts/deploy_glastopf.sh'),
+            'Ubuntu - Wordpot': path.abspath('../scripts/deploy_wordpot.sh'),
+            'Ubuntu - Shockpot': path.abspath('../scripts/deploy_shockpot.sh'),
+            'Ubuntu - p0f': path.abspath('../scripts/deploy_p0f.sh'),
+            'Ubuntu - Suricata': path.abspath('../scripts/deploy_suricata.sh'),
+            #'Raspberry Pi - Dionaea': path.abspath('../scripts/deploy_raspberrypi.sh'),
         }
         for honeypot, deploypath in deployscripts.iteritems():
 
@@ -143,7 +156,7 @@ def create_clean_db():
                 initdeploy.script = deployfile.read()
                 initdeploy.notes = 'Initial deploy script for {}'.format(honeypot)
                 initdeploy.user = superuser
-                initdeploy.name = 'Ubuntu 12.04 {}'.format(honeypot)
+                initdeploy.name = honeypot
                 db.session.add(initdeploy)
 
         # Creating an initial rule source.
