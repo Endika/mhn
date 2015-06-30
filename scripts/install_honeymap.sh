@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 apt-get install -y git golang mercurial make coffeescript
 DEBIAN_FRONTEND=noninteractive apt-get install -y golang-go
 
@@ -26,14 +28,16 @@ EOF
 cd ..
 make
 
+mkdir -p /var/log/mhn
+
 apt-get install -y supervisor
 
 cat > /etc/supervisor/conf.d/honeymap.conf <<EOF 
 [program:honeymap]
 command=/opt/honeymap/server/server
 directory=/opt/honeymap
-stdout_logfile=/var/log/honeymap.log
-stderr_logfile=/var/log/honeymap.err
+stdout_logfile=/var/log/mhn/honeymap.log
+stderr_logfile=/var/log/mhn/honeymap.err
 autostart=true
 autorestart=true
 startsecs=10
@@ -45,9 +49,10 @@ apt-get install -y libgeoip-dev
 cd /opt/
 wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz && gzip -d GeoLiteCity.dat.gz
 wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz && gzip -d GeoLiteCityv6.dat.gz
+wget http://download.maxmind.com/download/geoip/database/asnum/GeoIPASNum.dat.gz && gzip -d GeoIPASNum.dat.gz
 
 SECRET=`python -c 'import uuid;print str(uuid.uuid4()).replace("-","")'`
-/opt/hpfeeds/env/bin/python /opt/hpfeeds/broker/add_user.py geoloc $SECRET "geoloc.events" amun.events,dionaea.connections,dionaea.capture,glastopf.events,beeswarm.hive,kippo.sessions,conpot.events,snort.alerts,kippo.alerts,wordpot.events,shockpot.events,p0f.events,suricata.events
+/opt/hpfeeds/env/bin/python /opt/hpfeeds/broker/add_user.py geoloc $SECRET "geoloc.events" amun.events,dionaea.connections,dionaea.capture,glastopf.events,beeswarm.hive,kippo.sessions,conpot.events,snort.alerts,kippo.alerts,wordpot.events,shockpot.events,p0f.events,suricata.events,elastichoney.events
 
 cat > /opt/hpfeeds/geoloc.json <<EOF
 {
@@ -67,7 +72,8 @@ cat > /opt/hpfeeds/geoloc.json <<EOF
         "wordpot.events",
         "shockpot.events",
         "p0f.events",
-        "suricata.events"
+        "suricata.events",
+        "elastichoney.events"
     ],
     "GEOLOC_CHAN": "geoloc.events"
 }
@@ -77,8 +83,8 @@ cat > /etc/supervisor/conf.d/geoloc.conf <<EOF
 [program:geoloc]
 command=/opt/hpfeeds/env/bin/python /opt/hpfeeds/examples/geoloc/geoloc.py /opt/hpfeeds/geoloc.json
 directory=/opt/hpfeeds/
-stdout_logfile=/var/log/geoloc.log
-stderr_logfile=/var/log/geoloc.err
+stdout_logfile=/var/log/mhn/geoloc.log
+stderr_logfile=/var/log/mhn/geoloc.err
 autostart=true
 autorestart=true
 startsecs=10
