@@ -24,7 +24,7 @@ apt-get -y install python-dev openssl python-openssl python-pyasn1 python-twiste
 
 # Change real SSH Port to 2222
 sed -i 's/Port 22$/Port 2222/g' /etc/ssh/sshd_config
-reload ssh
+service ssh restart
 
 # Create Kippo user
 useradd -d /home/kippo -s /bin/bash -m kippo -g users
@@ -42,6 +42,9 @@ if [ -z "$(sysctl -w net.ipv4.conf.eth0.route_localnet=1 2>&1 >/dev/null)" ]
         echo "Adding iptables port forwarding rule...\n"
         iptables -F -t nat
         iptables -t nat -A PREROUTING -i eth0 -p tcp -m tcp --dport 22 -j DNAT --to-destination 127.0.0.1:64222
+        
+        echo "net.ipv4.conf.eth0.route_localnet=1" > /etc/sysctl.conf
+        DEBIAN_FRONTEND=noninteractive  apt-get install -q -y iptables-persistent
     else
         iptable_support=false
 fi
